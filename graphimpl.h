@@ -2,16 +2,18 @@
 #define GRAPHIMPL_H
 
 #include <unordered_map>
+#include <map>
 
 #include "igraph.h"
 
-template<typename ID, typename DATA>
-class GraphImpl : public IGraph<ID, DATA>
+template<typename ID, typename DATA, typename WEIGHT = size_t>
+class GraphImpl : public IGraph<ID, DATA, WEIGHT>
 {
 private:
     std::unordered_multimap<ID, ID> mEdgesFromNode;
     std::unordered_multimap<ID, ID> mEdgesToNode;
     std::unordered_map<ID, DATA> mNodes;
+    std::map<std::pair<ID, ID>, WEIGHT> mWeights;
 
 public:
 
@@ -35,6 +37,13 @@ public:
 
     virtual void deleteNode(ID id) override
     {
+        auto resultFromNode = mEdgesFromNode.equal_range(id);
+
+        for (auto it = resultFromNode.first; it != resultFromNode.second; ++it)
+        {
+            mWeights.erase(std::pair<ID, ID>(it->first, it->second));
+        }
+
         mEdgesFromNode.erase(id);
         mEdgesToNode.erase(id);
         mNodes.erase(id);
@@ -54,7 +63,7 @@ public:
         return retVal;
     }
 
-    virtual std::unordered_set<ID> getEdgesOfNode(ID id) const override
+    virtual std::unordered_set<ID> getChildsOfNode(ID id) const override
     {
         std::unordered_set<ID> retVal;
 
@@ -68,7 +77,7 @@ public:
         return retVal;
     }
 
-    virtual bool addEdge(ID parent, ID child) override
+    virtual bool addEdge(ID parent, ID child, WEIGHT weight = 0) override
     {
         bool retVal = false;
 
@@ -77,6 +86,7 @@ public:
         {
             mEdgesFromNode.insert(std::pair<ID, ID> (parent, child));
             mEdgesToNode.insert(std::pair<ID, ID> (child, parent));
+            mWeights.insert(std::pair<std::pair<ID, ID>, WEIGHT>(std::pair<ID, ID>(parent, child), weight));//?????????
 
             retVal = true;
         }
@@ -107,6 +117,27 @@ public:
                 break;
             }
         }
+
+        auto resultWeightIt = mWeights.find(std::pair<ID, ID> (parent, child));
+
+        if(mWeights.end() != resultWeightIt)
+        {
+            mWeights.erase(resultWeightIt);
+        }
+    }
+
+    virtual const WEIGHT* getWeight(ID parent, ID child) const override
+    {
+        const WEIGHT* retVal = nullptr;
+
+        auto it = mWeights.find(std::pair<ID, ID>(parent, child));
+
+        if(mWeights.end() != it)
+        {
+            retVal = &(it->second);
+        }
+
+        return retVal;
     }
 };
 

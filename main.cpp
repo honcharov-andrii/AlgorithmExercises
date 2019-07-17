@@ -1,4 +1,5 @@
 #include "graphimpl.h"
+#include <string>
 
 struct Data
 {
@@ -10,27 +11,45 @@ bool checkIsRed(const Data & data)
     return data.mIsRed;
 }
 
+bool isSmaller(const size_t & w1, const size_t & w2)
+{
+    return w1 < w2;
+}
+
 int main()
 {
-    int id1 = 1;
+    std::string begin = "begin";
     Data d1;
     d1.mIsRed = false;
 
-    int id2 = 2;
+    std::string A = "A";
     Data d2;
-    d2.mIsRed = true;
+    d2.mIsRed = false;
 
-    IGraph<int, Data> *graph = new GraphImpl<int, Data>();
-    graph->addNode(id1, std::move(d1));
-    graph->addNode(id2, std::move(d2));
+    std::string B = "B";
+    Data d3;
+    d3.mIsRed = false;
 
-    bool resAddEdge1 = graph->addEdge(id1, id2);
+    std::string end = "end";
+    Data d4;
+    d4.mIsRed = true;
 
-    graph->deleteEdge(id1, id2);
+    IGraph<std::string, Data, size_t> *graph = new GraphImpl<std::string, Data>();
+    graph->addNode(begin, std::move(d1));
+    graph->addNode(A, std::move(d2));
+    graph->addNode(B, std::move(d3));
+    graph->addNode(end, std::move(d4));
 
-    graph->addEdge(id1, id2);
+    bool resAddEdge1 = graph->addEdge(begin, A, 6);
+    bool resAddEdge2 = graph->addEdge(begin, B, 2);
+    bool resAddEdge3 = graph->addEdge(B, A, 3);
+    bool resAddEdge4 = graph->addEdge(A, end, 1);
+    bool resAddEdge5 = graph->addEdge(B, end, 5);
 
-    std::pair<bool, int> res =  breadthFirstSearch<int, Data>(*graph, id1, checkIsRed);
+
+    std::pair<bool, std::string> res1 =  breadthFirstSearch<std::string, Data>(*graph, begin, checkIsRed);
+
+    std::pair<bool, std::vector<std::string>> res2 = DijkstraAlgorithm<std::string, Data, size_t>(*graph, begin, end, isSmaller);
 
     return 0;
 }
