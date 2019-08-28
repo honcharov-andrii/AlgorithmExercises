@@ -8,4 +8,5 @@ SOURCES += \
 
 HEADERS += \
     igraph.h \
-    graphimpl.h
+    graphimpl.h \
+    coveragecalculator.h
