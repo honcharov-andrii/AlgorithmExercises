@@ -2,6 +2,7 @@
 #define META_PROGRAMMING_H
 
 #include <type_traits>
+#include <vector>
 #include <tuple>
 
 namespace unique_template_types
@@ -22,7 +23,7 @@ namespace unique_template_types
 
 namespace tuple_for_each
 {
-    template < typename... >
+    template <typename... >
     struct Typelist {};
 
     template<int index,
@@ -46,7 +47,7 @@ namespace tuple_for_each
             SecondTuple,
             Callback>
     {
-        static void next(FirstTuple<FirstTupleArgs...>& firstTuple, SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
         {
             iterate_tuple<index - 1,
                     Typelist <FirstTupleArgs...>,
@@ -70,7 +71,7 @@ namespace tuple_for_each
             SecondTuple,
             Callback>
     {
-        static void next(FirstTuple<FirstTupleArgs...>& firstTuple, SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
         {
             callback(0, std::get<0>(firstTuple), secondTuple);
         }
@@ -88,13 +89,13 @@ namespace tuple_for_each
             SecondTuple,
             Callback>
     {
-        static void next(FirstTuple<FirstTupleArgs...>& firstTuple, SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback){ }
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback){ }
     };
 
     template <typename... FirstTupleArgs, template <typename...> class FirstTuple,
               typename... SecondTupleArgs, template <typename...> class SecondTuple,
               typename Callback>
-    void for_each(FirstTuple<FirstTupleArgs...>& firstTuple, SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
+    void for_each(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
     {
         int const t_size = std::tuple_size<std::tuple<FirstTupleArgs...>>::value;
 
@@ -106,20 +107,12 @@ namespace tuple_for_each
     }
 
 
-
-
-    template<int index,
-             typename Callback,
-             typename T,
-             typename... Args>
+    template<int index, typename Callback, typename T, typename... Args>
     struct iterate_tuple_with_param
     {
-        static void next(std::tuple<Args...>& tpl, Callback callback, T& param)
+        static void next(const std::tuple<Args...> & tpl, Callback callback, const T & param)
         {
-            iterate_tuple_with_param<index - 1,
-                                     Callback,
-                                     T,
-                                     Args...>::next(tpl, callback, param);
+            iterate_tuple_with_param<index - 1, Callback, T, Args...>::next(tpl, callback, param);
 
             callback(index, std::get<index>(tpl), param);
         }
@@ -128,7 +121,7 @@ namespace tuple_for_each
     template<typename Callback, typename T, typename... Args>
     struct iterate_tuple_with_param<0, Callback, T, Args...>
     {
-        static void next(std::tuple<Args...>& tpl, Callback callback, T& param)
+        static void next(const std::tuple<Args...> & tpl, Callback callback, const T & param)
         {
             callback(0, std::get<0>(tpl), param);
         }
@@ -137,11 +130,11 @@ namespace tuple_for_each
     template<typename Callback, typename T, typename... Args>
     struct iterate_tuple_with_param<-1, Callback, T, Args...>
     {
-        static void next(std::tuple<Args...>& tpl, Callback callback, T& param){ }
+        static void next(const std::tuple<Args...> & tpl, Callback callback, const T & param){ }
     };
 
     template<typename Callback, typename T, typename... Args>
-    void for_each_with_param(std::tuple<Args...>& tpl, Callback callback, T& param)
+    void for_each_with_param(const std::tuple<Args...> & tpl, Callback callback, const T & param)
     {
         int const t_size = std::tuple_size<std::tuple<Args...>>::value;
 

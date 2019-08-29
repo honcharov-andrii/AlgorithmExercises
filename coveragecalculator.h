@@ -8,8 +8,6 @@
 #include <tuple>
 #include "meta_programming.h"
 
-
-
 template <typename ID, typename ...Args>
 class CoverageCalculator
 {
@@ -17,25 +15,23 @@ private:
     std::unordered_map<ID, std::tuple<Args...>> mStorage;
     std::tuple<Args...> mPropertiesNeeded;
 
-    struct CallbackForTuple
+    struct CallbackForCompareValues
     {
         template<typename T, typename U>
-        void operator()(int index, T&& t, U&& u)
+        void operator()(int index, const T & t, const U & u)
         {
             int a = 0;
         }
     };
 
-    struct CallbackForCollection
+    struct CallbackForIterateTuple
     {
         template<typename T, typename... Arg>
-        void operator()(int index, T&& t, std::tuple<Arg...>& tpl)
+        void operator()(int index, const T & t, const std::tuple<Arg...>& tpl)
         {
-            tuple_for_each::for_each_with_param(tpl, CallbackForTuple(), std::forward<T>(t));
+            tuple_for_each::for_each_with_param(tpl, CallbackForCompareValues(), t);
         }
     };
-
-
 
 public:
     CoverageCalculator(Args&&... args) :
@@ -78,7 +74,7 @@ public:
                 {
                     std::vector<bool> localConrolResult = conrolResult;
 
-                    tuple_for_each::for_each(it->second, mPropertiesNeeded, CallbackForCollection());
+                    tuple_for_each::for_each(it->second, mPropertiesNeeded, CallbackForIterateTuple());
 
                     if(std::count(localConrolResult.begin(), localConrolResult.end(), true) > std::count(conrolResult.begin(), conrolResult.end(), true))
                     {
