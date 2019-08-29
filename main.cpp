@@ -1,5 +1,6 @@
 #include "graphimpl.h"
 #include "coveragecalculator.h"
+#include "meta_programming.h"
 #include <string>
 
 
@@ -62,7 +63,7 @@ void customQuickSort(T *array, size_t sizeOfArray)
 
 int main()
 {
-    size_t N = 3;
+    /*size_t N = 3;
     int *A = new int[N];
 
     for (size_t i = 0; i < N; ++i)
@@ -70,22 +71,11 @@ int main()
         A[i] = rand() % 10;
     }
 
-    //customQuickSort<int>(A, N);
+    customQuickSort<int>(A, N);*/
 
-    std::unordered_set<std::string> mPropertiesNeeded {"one", "two", "three", "four", "six"};
-    CoverageCalculator<int, std::string> calc(mPropertiesNeeded.begin(), mPropertiesNeeded.end());
-
-    std::unordered_set<std::string> s1 {"one"};
-    calc.addObject(1, s1.begin(), s1.end());
-    std::unordered_set<std::string> s2 {"two"};
-    calc.addObject(2, s2.begin(), s2.end());
-    std::unordered_set<std::string> s3 {"three"};
-    calc.addObject(3, s3.begin(), s3.end());
-    std::unordered_set<std::string> s4 {"four"};
-    calc.addObject(4, s4.begin(), s4.end());
-    std::unordered_set<std::string> s5 {"five"};
-    calc.addObject(5, s5.begin(), s5.end());
-    std::unordered_set<int> result = calc.calculateCoverage();
+    CoverageCalculator<int, std::string, int, double> calc("one", 2, 66.0);
+    calc.addObject(1, "two", 34, 65.5);
+    calc.calculateCoverage();
 
     /*std::string begin = "begin";
     Data d1;

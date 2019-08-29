@@ -9,4 +9,5 @@ SOURCES += \
 HEADERS += \
     igraph.h \
     graphimpl.h \
-    coveragecalculator.h
+    coveragecalculator.h \
+    meta_programming.h

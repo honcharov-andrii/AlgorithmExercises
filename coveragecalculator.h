@@ -5,25 +5,49 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
+#include <tuple>
+#include "meta_programming.h"
 
-template <typename ID, typename Props>
+
+
+template <typename ID, typename ...Args>
 class CoverageCalculator
 {
 private:
-    std::unordered_map<ID, std::unordered_set<Props>> mStorage;
-    std::unordered_set<Props> mPropertiesNeeded;
+    std::unordered_map<ID, std::tuple<Args...>> mStorage;
+    std::tuple<Args...> mPropertiesNeeded;
+
+    struct CallbackForTuple
+    {
+        template<typename T, typename U>
+        void operator()(int index, T&& t, U&& u)
+        {
+            int a = 0;
+        }
+    };
+
+    struct CallbackForCollection
+    {
+        template<typename T, typename... Arg>
+        void operator()(int index, T&& t, std::tuple<Arg...>& tpl)
+        {
+            tuple_for_each::for_each_with_param(tpl, CallbackForTuple(), std::forward<T>(t));
+        }
+    };
+
+
 
 public:
-    template <typename Iterator>
-    CoverageCalculator(const Iterator & begin, Iterator end) :
+    CoverageCalculator(Args&&... args) :
         mStorage{},
-        mPropertiesNeeded{begin, end}
-    {}
-
-    template <typename Iterator>
-    void addObject(const ID & id, const Iterator & begin, const Iterator & end)
+        mPropertiesNeeded{std::forward<Args>(args)...}
     {
-        mStorage[id] = std::unordered_set<Props>(begin, end);
+        unique_template_types::UniqueTypes<Args...> checkIsUnique;
+    }
+
+    void addObject(const ID & id, Args&&... args)
+    {
+        mStorage[id] = std::make_tuple(std::forward<Args>(args)...);
     }
 
     bool eraseObject(const ID & id)
@@ -42,37 +66,35 @@ public:
     {
         std::unordered_set<ID> retVal;
 
-        std::unordered_set<Props> tmpPropertiesNeeded = mPropertiesNeeded;
+        std::vector<bool> conrolResult(std::tuple_size<std::tuple<Args...>>::value);
 
-        for(size_t i = 0; i < mStorage.size() && tmpPropertiesNeeded.size() > 0; ++i)
+        for(size_t i = 0; i < mStorage.size(); ++i)
         {
             ID bestId;
-            std::unordered_set<Props> bestIntersection;
 
             for(auto it = mStorage.begin(); it != mStorage.end(); ++it)
             {
-                std::unordered_set<Props> currentIntersection;
-
-                std::set_intersection(tmpPropertiesNeeded.begin(), tmpPropertiesNeeded.end(),
-                                      it->second.begin(), it->second.end(),
-                                      std::inserter(currentIntersection, currentIntersection.begin()));
-
-                if(currentIntersection.size() > bestIntersection.size())
+                if(retVal.end() == retVal.find(it->first))
                 {
-                    bestId = it->first;
-                    bestIntersection = currentIntersection;
+                    std::vector<bool> localConrolResult = conrolResult;
+
+                    tuple_for_each::for_each(it->second, mPropertiesNeeded, CallbackForCollection());
+
+                    if(std::count(localConrolResult.begin(), localConrolResult.end(), true) > std::count(conrolResult.begin(), conrolResult.end(), true))
+                    {
+                        conrolResult = localConrolResult;
+
+                        bestId = it->first;
+                    }
                 }
             }
 
             retVal.insert(bestId);
 
-            std::unordered_set<Props> diff;
-
-            std::set_difference(tmpPropertiesNeeded.begin(), tmpPropertiesNeeded.end(),
-                                bestIntersection.begin(), bestIntersection.end(),
-                                std::inserter(diff, diff.begin()));
-
-            tmpPropertiesNeeded = diff;
+            if(conrolResult.size() == std::count(conrolResult.begin(), conrolResult.end(), true))// all variables in vector will be true
+            {
+                break;
+            }
         }
 
         return retVal;
