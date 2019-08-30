@@ -74,7 +74,8 @@ int main()
     customQuickSort<int>(A, N);*/
 
     CoverageCalculator<int, std::string, int, double> calc("one", 2, 66.0);
-    calc.addObject(1, "two", 34, 65.5);
+    calc.addObject(2, "two", 2, 65.0);
+    calc.addObject(1, "one", 1, 66.0);
     calc.calculateCoverage();
 
     /*std::string begin = "begin";

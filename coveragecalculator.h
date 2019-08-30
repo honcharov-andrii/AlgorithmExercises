@@ -18,18 +18,25 @@ private:
     struct CallbackForCompareValues
     {
         template<typename T, typename U>
-        void operator()(int index, const T & t, const U & u)
+        void operator()(int index, const T & t, const U & u, std::vector<bool> & matchingValues)
+        {}
+
+        template<typename T>
+        void operator()(int index, const T & t1, const T & t2, std::vector<bool> & matchingValues)
         {
-            int a = 0;
+            if(t1 == t2)
+            {
+                matchingValues[index] = true;
+            }
         }
     };
 
     struct CallbackForIterateTuple
     {
         template<typename T, typename... Arg>
-        void operator()(int index, const T & t, const std::tuple<Arg...>& tpl)
+        void operator()(int index, const T & t, const std::tuple<Arg...>& tpl, std::vector<bool> & matchingValues)
         {
-            tuple_for_each::for_each_with_param(tpl, CallbackForCompareValues(), t);
+            tuple_for_each::for_each_with_param(tpl, t, matchingValues, CallbackForCompareValues());
         }
     };
 
@@ -62,23 +69,25 @@ public:
     {
         std::unordered_set<ID> retVal;
 
-        std::vector<bool> conrolResult(std::tuple_size<std::tuple<Args...>>::value);
+        std::vector<bool> bestResult(std::tuple_size<std::tuple<Args...>>::value);
 
         for(size_t i = 0; i < mStorage.size(); ++i)
         {
             ID bestId;
 
+            std::vector<bool> bestResultAfterCycle = bestResult;
+
             for(auto it = mStorage.begin(); it != mStorage.end(); ++it)
             {
                 if(retVal.end() == retVal.find(it->first))
                 {
-                    std::vector<bool> localConrolResult = conrolResult;
+                    std::vector<bool> localBestResult = bestResult;
 
-                    tuple_for_each::for_each(it->second, mPropertiesNeeded, CallbackForIterateTuple());
+                    tuple_for_each::for_each(it->second, mPropertiesNeeded, localBestResult, CallbackForIterateTuple());
 
-                    if(std::count(localConrolResult.begin(), localConrolResult.end(), true) > std::count(conrolResult.begin(), conrolResult.end(), true))
+                    if(std::count(localBestResult.begin(), localBestResult.end(), true) > std::count(bestResultAfterCycle.begin(), bestResultAfterCycle.end(), true))
                     {
-                        conrolResult = localConrolResult;
+                        bestResultAfterCycle = localBestResult;
 
                         bestId = it->first;
                     }
@@ -87,7 +96,9 @@ public:
 
             retVal.insert(bestId);
 
-            if(conrolResult.size() == std::count(conrolResult.begin(), conrolResult.end(), true))// all variables in vector will be true
+            bestResult = bestResultAfterCycle;
+
+            if(bestResult.size() == std::count(bestResult.begin(), bestResult.end(), true))// all variables in vector will be true
             {
                 break;
             }

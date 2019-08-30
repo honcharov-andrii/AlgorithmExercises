@@ -47,15 +47,15 @@ namespace tuple_for_each
             SecondTuple,
             Callback>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, std::vector<bool> & matchingValues, Callback callback)
         {
             iterate_tuple<index - 1,
                     Typelist <FirstTupleArgs...>,
                     Typelist <SecondTupleArgs...>,
                     FirstTuple,
-                    SecondTuple, Callback>::next(firstTuple, secondTuple, callback);
+                    SecondTuple, Callback>::next(firstTuple, secondTuple, matchingValues, callback);
 
-            callback(index, std::get<index>(firstTuple), secondTuple);
+            callback(index, std::get<index>(firstTuple), secondTuple, matchingValues);
         }
     };
 
@@ -71,9 +71,9 @@ namespace tuple_for_each
             SecondTuple,
             Callback>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, std::vector<bool> & matchingValues, Callback callback)
         {
-            callback(0, std::get<0>(firstTuple), secondTuple);
+            callback(0, std::get<0>(firstTuple), secondTuple, matchingValues);
         }
     };
 
@@ -89,13 +89,13 @@ namespace tuple_for_each
             SecondTuple,
             Callback>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback){ }
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, std::vector<bool> & matchingValues, Callback callback){ }
     };
 
     template <typename... FirstTupleArgs, template <typename...> class FirstTuple,
               typename... SecondTupleArgs, template <typename...> class SecondTuple,
               typename Callback>
-    void for_each(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, Callback callback)
+    void for_each(const FirstTuple<FirstTupleArgs...> & firstTuple, const SecondTuple<SecondTupleArgs...> & secondTuple, std::vector<bool> & matchingValues, Callback callback)
     {
         int const t_size = std::tuple_size<std::tuple<FirstTupleArgs...>>::value;
 
@@ -103,42 +103,42 @@ namespace tuple_for_each
                 Typelist <FirstTupleArgs...>,
                 Typelist <SecondTupleArgs...>,
                 FirstTuple,
-                SecondTuple, Callback>::next(firstTuple, secondTuple, callback);
+                SecondTuple, Callback>::next(firstTuple, secondTuple, matchingValues, callback);
     }
 
 
-    template<int index, typename Callback, typename T, typename... Args>
+    template<int index, typename Callback, typename Param, typename... Args>
     struct iterate_tuple_with_param
     {
-        static void next(const std::tuple<Args...> & tpl, Callback callback, const T & param)
+        static void next(const std::tuple<Args...> & tpl, const Param & param, std::vector<bool> & matchingValues, Callback callback)
         {
-            iterate_tuple_with_param<index - 1, Callback, T, Args...>::next(tpl, callback, param);
+            iterate_tuple_with_param<index - 1, Callback, Param, Args...>::next(tpl, param, matchingValues, callback);
 
-            callback(index, std::get<index>(tpl), param);
+            callback(index, std::get<index>(tpl), param, matchingValues);
         }
     };
 
-    template<typename Callback, typename T, typename... Args>
-    struct iterate_tuple_with_param<0, Callback, T, Args...>
+    template<typename Callback, typename Param, typename... Args>
+    struct iterate_tuple_with_param<0, Callback, Param, Args...>
     {
-        static void next(const std::tuple<Args...> & tpl, Callback callback, const T & param)
+        static void next(const std::tuple<Args...> & tpl, const Param & param, std::vector<bool> & matchingValues, Callback callback)
         {
-            callback(0, std::get<0>(tpl), param);
+            callback(0, std::get<0>(tpl), param, matchingValues);
         }
     };
 
-    template<typename Callback, typename T, typename... Args>
-    struct iterate_tuple_with_param<-1, Callback, T, Args...>
+    template<typename Callback, typename Param, typename... Args>
+    struct iterate_tuple_with_param<-1, Callback, Param, Args...>
     {
-        static void next(const std::tuple<Args...> & tpl, Callback callback, const T & param){ }
+        static void next(const std::tuple<Args...> & tpl, const Param & param, std::vector<bool> & matchingValues, Callback callback){}
     };
 
-    template<typename Callback, typename T, typename... Args>
-    void for_each_with_param(const std::tuple<Args...> & tpl, Callback callback, const T & param)
+    template<typename Callback, typename Param, typename... Args>
+    void for_each_with_param(const std::tuple<Args...> & tpl, const Param & param, std::vector<bool> & matchingValues, Callback callback)
     {
         int const t_size = std::tuple_size<std::tuple<Args...>>::value;
 
-        iterate_tuple_with_param<t_size - 1, Callback, T, Args...>::next(tpl, callback, param);
+        iterate_tuple_with_param<t_size - 1, Callback, Param, Args...>::next(tpl, param, matchingValues, callback);
     }
 }
 
