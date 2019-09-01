@@ -4,39 +4,6 @@
 #include <string>
 
 
-#include <iostream>
-#include <regex>
-#include <string>
-
-template<typename ID,
-         typename ...Tuples>
-class   TestClass
-{
-private:
-
-    std::tuple<Tuples...> tpl;
-    std::vector<ID> vec;
-
-public:
-    template <size_t N>
-    TestClass(ID (&arr)[N], Tuples&&... mem) :
-        tpl{std::forward<Tuples>(mem)...}
-    {
-        static_assert(N == std::tuple_size<std::tuple<Tuples...>>::value, "Size Array of ID and tuples must be equal");
-
-        for(auto & i : arr)
-        {
-            vec.push_back(i);
-        }
-    }
-
-    template <typename... Args>
-    std::vector<ID> calcCoverage(Args&& ... args)
-    {
-
-    }
-};
-
 template<typename T>
 void customQuickSort(T *array, size_t sizeOfArray)
 {
@@ -79,7 +46,11 @@ int main()
 {
     int v []= {1, 2};
 
-    TestClass<int, std::tuple<int, double, char>, std::tuple<int, double>> testClass(v, std::tuple<int, double, char>(1, 1.5, 'c'), std::tuple<int, double>(1, 1.5));
+    CoverageCalculator<int, std::tuple<int, double, char>,
+                            std::tuple<int, double>> testClass(v, std::tuple<int, double, char>(1, 1.5, 'c'),
+                                                                  std::tuple<int, double>(1, 1.5));
+
+    testClass.calculateCoverage(std::tuple<int, char>(1, 'c'));
 
     return 0;
 }
