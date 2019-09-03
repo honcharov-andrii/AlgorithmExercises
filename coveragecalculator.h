@@ -24,26 +24,13 @@ namespace unique_template_types
     };
 }
 
-namespace check_is_optional_templates
-{
-
-
-    template<typename TypeListOne,
-             template <typename...> class FirstTuple>
-    struct OptionalTypes
-    {
-
-    };
-
-
-}
-
 namespace two_tuples_for_each
 {
     template <typename... >
     struct Typelist {};
 
-    template<int index,
+    template<size_t N,
+             int index,
              typename TypeListOne,
              typename TypeListTwo,
              template <typename...> class FirstTuple,
@@ -51,78 +38,219 @@ namespace two_tuples_for_each
              typename Callback>
     struct iterate_tuple;
 
-    template<int index,
+    template<size_t N,
+             int index,
              typename... FirstTupleArgs,
              typename... SecondTupleArgs,
              template <typename...> class FirstTuple,
              template <typename...> class SecondTuple,
              typename Callback>
-    struct iterate_tuple<index,
+    struct iterate_tuple<N,
+            index,
             Typelist <FirstTupleArgs...>,
             Typelist <SecondTupleArgs...>,
             FirstTuple,
             SecondTuple,
             Callback>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, std::vector<bool> & matchingValues, Callback callback)
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, SecondTuple<SecondTupleArgs...>& secondTuple, std::array<bool, N> & validValues, Callback callback)
         {
-            iterate_tuple<index - 1,
+            iterate_tuple<N,
+                    index - 1,
                     Typelist <FirstTupleArgs...>,
                     Typelist <SecondTupleArgs...>,
                     FirstTuple,
-                    SecondTuple, Callback>::next(firstTuple, secondTuple, matchingValues, callback);
+                    SecondTuple, Callback>::next(firstTuple, secondTuple, validValues, callback);
 
-            callback(index, std::get<index>(firstTuple), secondTuple, matchingValues);
+            callback(index, std::get<index>(firstTuple), secondTuple, validValues);
         }
     };
 
-    template<typename... FirstTupleArgs,
+    template<size_t N,
+             typename... FirstTupleArgs,
              typename... SecondTupleArgs,
              template <typename...> class FirstTuple,
              template <typename...> class SecondTuple,
              typename Callback>
-    struct iterate_tuple<0,
+    struct iterate_tuple<N,
+            0,
             Typelist <FirstTupleArgs...>,
             Typelist <SecondTupleArgs...>,
             FirstTuple,
             SecondTuple,
             Callback>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, std::vector<bool> & matchingValues, Callback callback)
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, SecondTuple<SecondTupleArgs...>& secondTuple, std::array<bool, N> & validValues, Callback callback)
         {
-            callback(0, std::get<0>(firstTuple), secondTuple, matchingValues);
+            callback(0, std::get<0>(firstTuple), secondTuple, validValues);
         }
     };
 
-    template<typename... FirstTupleArgs,
+    template<size_t N,
+             typename... FirstTupleArgs,
              typename... SecondTupleArgs,
              template <typename...> class FirstTuple,
              template <typename...> class SecondTuple,
              typename Callback>
-    struct iterate_tuple<-1,
+    struct iterate_tuple<N,
+            -1,
             Typelist <FirstTupleArgs...>,
             Typelist <SecondTupleArgs...>,
             FirstTuple,
             SecondTuple,
             Callback>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, std::vector<bool> & matchingValues, Callback callback){ }
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, SecondTuple<SecondTupleArgs...>& secondTuple, std::array<bool, N> & validValues, Callback callback){ }
     };
 
-    template <typename... FirstTupleArgs, template <typename...> class FirstTuple,
+    template <size_t N,
+              typename... FirstTupleArgs, template <typename...> class FirstTuple,
               typename... SecondTupleArgs, template <typename...> class SecondTuple,
               typename Callback>
-    void for_each(const FirstTuple<FirstTupleArgs...> & firstTuple, const SecondTuple<SecondTupleArgs...> & secondTuple, std::vector<bool> & matchingValues, Callback callback)
+    void for_each_for_two_tuples(const FirstTuple<FirstTupleArgs...> & firstTuple, SecondTuple<SecondTupleArgs...> & secondTuple, std::array<bool, N> & validValues, Callback callback)
     {
         int const t_size = std::tuple_size<std::tuple<FirstTupleArgs...>>::value;
 
-        iterate_tuple<t_size - 1,
+        iterate_tuple<N, t_size - 1,
                 Typelist <FirstTupleArgs...>,
                 Typelist <SecondTupleArgs...>,
                 FirstTuple,
-                SecondTuple, Callback>::next(firstTuple, secondTuple, matchingValues, callback);
+                SecondTuple, Callback>::next(firstTuple, secondTuple, validValues, callback);
     }
 };
+
+namespace for_each_tuple_with_param
+{
+    template<size_t N, int index, typename Callback, typename Param, typename... Args>
+    struct iterate_tuple_with_param
+    {
+        static void next(std::tuple<Args...> & tpl, const Param & param, std::array<bool, N> & validValues, Callback callback)
+        {
+            iterate_tuple_with_param<N, index - 1, Callback, Param, Args...>::next(tpl, param, validValues, callback);
+
+            callback(index, std::get<index>(tpl), param, validValues);
+        }
+    };
+
+    template<size_t N, typename Callback, typename Param, typename... Args>
+    struct iterate_tuple_with_param<N, 0, Callback, Param, Args...>
+    {
+        static void next(std::tuple<Args...> & tpl, const Param & param, std::array<bool, N> & validValues, Callback callback)
+        {
+            callback(0, std::get<0>(tpl), param, validValues);
+        }
+    };
+
+    template<size_t N, typename Callback, typename Param, typename... Args>
+    struct iterate_tuple_with_param<N, -1, Callback, Param, Args...>
+    {
+        static void next(std::tuple<Args...> & tpl, const Param & param, std::array<bool, N> & validValues, Callback callback){}
+    };
+
+    template<size_t N, typename Callback, typename Param, typename... Args>
+    void for_each_with_param(std::tuple<Args...> & tpl, const Param & param, std::array<bool, N> & validValues, Callback callback)
+    {
+        int const t_size = std::tuple_size<std::tuple<Args...>>::value;
+
+        iterate_tuple_with_param<N, t_size - 1, Callback, Param, Args...>::next(tpl, param, validValues, callback);
+    }
+}
+
+namespace compare_two_tuples_for_each
+{
+    template <typename... >
+    struct Typelist {};
+
+    template<size_t N,
+             int index,
+             typename TypeListOne,
+             typename TypeListTwo,
+             template <typename...> class FirstTuple,
+             template <typename...> class SecondTuple,
+             typename Callback>
+    struct iterate_tuple;
+
+    template<size_t N,
+             int index,
+             typename... FirstTupleArgs,
+             typename... SecondTupleArgs,
+             template <typename...> class FirstTuple,
+             template <typename...> class SecondTuple,
+             typename Callback>
+    struct iterate_tuple<N,
+            index,
+            Typelist <FirstTupleArgs...>,
+            Typelist <SecondTupleArgs...>,
+            FirstTuple,
+            SecondTuple,
+            Callback>
+    {
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
+        {
+            iterate_tuple<N,
+                    index - 1,
+                    Typelist <FirstTupleArgs...>,
+                    Typelist <SecondTupleArgs...>,
+                    FirstTuple,
+                    SecondTuple, Callback>::next(firstTuple, secondTuple, validValues, matchingValues, callback);
+
+            callback(index, std::get<index>(firstTuple), std::get<index>(secondTuple), validValues, matchingValues);
+        }
+    };
+
+    template<size_t N,
+             typename... FirstTupleArgs,
+             typename... SecondTupleArgs,
+             template <typename...> class FirstTuple,
+             template <typename...> class SecondTuple,
+             typename Callback>
+    struct iterate_tuple<N,
+            0,
+            Typelist <FirstTupleArgs...>,
+            Typelist <SecondTupleArgs...>,
+            FirstTuple,
+            SecondTuple,
+            Callback>
+    {
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
+        {
+            callback(0, std::get<0>(firstTuple), std::get<0>(secondTuple), validValues, matchingValues);
+        }
+    };
+
+    template<size_t N,
+             typename... FirstTupleArgs,
+             typename... SecondTupleArgs,
+             template <typename...> class FirstTuple,
+             template <typename...> class SecondTuple,
+             typename Callback>
+    struct iterate_tuple<N,
+            -1,
+            Typelist <FirstTupleArgs...>,
+            Typelist <SecondTupleArgs...>,
+            FirstTuple,
+            SecondTuple,
+            Callback>
+    {
+        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback){ }
+    };
+
+    template <size_t N,
+              typename... FirstTupleArgs, template <typename...> class FirstTuple,
+              typename... SecondTupleArgs, template <typename...> class SecondTuple,
+              typename Callback>
+    void for_each_for_compare_two_tuples(const FirstTuple<FirstTupleArgs...> & firstTuple, const SecondTuple<SecondTupleArgs...> & secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
+    {
+        int const t_size = std::tuple_size<std::tuple<FirstTupleArgs...>>::value;
+
+        iterate_tuple<N, t_size - 1,
+                Typelist <FirstTupleArgs...>,
+                Typelist <SecondTupleArgs...>,
+                FirstTuple,
+                SecondTuple, Callback>::next(firstTuple, secondTuple, validValues, matchingValues, callback);
+    }
+};
+
 
 template <size_t N, typename ID, typename ...Properties>
 class CoverageCalculator
@@ -132,30 +260,71 @@ private:
     std::unordered_map<ID, std::array<bool, N>> mValidProperties;
     std::tuple<Properties...> mPropertiesNeeded;
 
+    struct CallbackForCompareVariablesOnTypes
+    {
+        template<typename T, typename U>
+        void operator()(int index, T & tupleParam, const U & inputParam, std::array<bool, N> & validValues)
+        {}
+
+        template<typename T>
+        void operator()(int index, T & tupleParam, const T & inputParam, std::array<bool, N> & validValues)
+        {
+            tupleParam = inputParam;
+            validValues[index] = true;
+        }
+    };
+
+    struct CallbackForIterateTuple
+    {
+        template<typename T, typename... Arg>
+        void operator()(int index, const T & t, std::tuple<Arg...> & tpl, std::array<bool, N> & validValues)
+        {
+            for_each_tuple_with_param::for_each_with_param(tpl, t, validValues, CallbackForCompareVariablesOnTypes());
+        }
+    };
+
+    struct CallbackForCompareValues
+    {
+        template<typename T>
+        void operator()(int index, const T & t1, const T & t2, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues)
+        {
+            if(true == validValues[index])
+            {
+                matchingValues[index] = t1 == t2 ? true : false;
+            }
+        }
+    };
+
 public:
     CoverageCalculator(Properties&& ...props) :
         mStorage{},
-        mPropertiesNeeded{std::forward<Properties...>(props)...}
-    {}
-
-    template <typename ...OptionProperties>
-    void addObject(const ID & id, OptionProperties&& ...optionProperties)
+        mPropertiesNeeded{std::forward<Properties>(props)...}
     {
         unique_template_types::UniqueTypes<Properties...> checkIsUnique;
-
-        std::tuple<OptionProperties...> optProps(std::forward<OptionProperties...>(optionProperties)...);
-
-
-
-        //mStorage[id] = std::unordered_set<Props>(begin, end);
     }
 
-    bool eraseObject(const ID & id)
+    template <typename ...InputProperties>
+    void addObject(const ID & id, InputProperties&& ...inputProperties)
     {
-        size_t tmp = mStorage.erase(id); // std::size_type ??????
-        mValidProperties.erase(id);
+        unique_template_types::UniqueTypes<InputProperties...> checkIsUnique;
 
-        return tmp > 0 ? true : false;
+        std::tuple<InputProperties...> inpProps(std::forward<InputProperties>(inputProperties)...);
+
+        std::tuple<Properties...> castedProperties;
+
+        std::array<bool, N> validValues{};
+
+        two_tuples_for_each::for_each_for_two_tuples(inpProps, castedProperties, validValues, CallbackForIterateTuple());
+
+        mStorage[id] = std::move(castedProperties);
+
+        mValidProperties[id] = std::move(validValues);
+    }
+
+    void eraseObject(const ID & id)
+    {
+        mStorage.erase(id); // std::size_type ??????
+        mValidProperties.erase(id);
     }
 
     void clear()
@@ -168,38 +337,54 @@ public:
     {
         std::unordered_set<ID> retVal;
 
-        /*std::unordered_set<Props> tmpPropertiesNeeded = mPropertiesNeeded;
+        std::array<bool, N> bestResult{};
 
-        for(size_t i = 0; i < mStorage.size() && tmpPropertiesNeeded.size() > 0; ++i)
+        for(size_t i = 0; i < mStorage.size(); ++i)
         {
-            ID bestId;
-            std::unordered_set<Props> bestIntersection;
+            std::pair<bool, ID> bestId;
+            bestId.first = false;
 
-            for(auto it = mStorage.begin(); it != mStorage.end(); ++it)
-            {
-                std::unordered_set<Props> currentIntersection;
+            std::array<bool, N> bestResultAfterCycle{};
 
-                std::set_intersection(tmpPropertiesNeeded.begin(), tmpPropertiesNeeded.end(),
-                                      it->second.begin(), it->second.end(),
-                                      std::inserter(currentIntersection, currentIntersection.begin()));
+            auto storageIt = mStorage.begin();
+            auto validPropIt = mValidProperties.begin();
 
-                if(currentIntersection.size() > bestIntersection.size())
+            while(storageIt != mStorage.end() && validPropIt != mValidProperties.end())// maybe we could use only one iterator,
+            {                                                                          // because sizes of containers are equal
+                if(retVal.end() == retVal.find(storageIt->first))
                 {
-                    bestId = it->first;
-                    bestIntersection = currentIntersection;
+                    std::array<bool, N> localBestResult = bestResult;
+
+                    compare_two_tuples_for_each::for_each_for_compare_two_tuples(storageIt->second,
+                                                                                 mPropertiesNeeded,
+                                                                                 validPropIt->second,
+                                                                                 localBestResult,
+                                                                                 CallbackForCompareValues());
+
+                    if(std::count(localBestResult.begin(), localBestResult.end(), true) > std::count(bestResultAfterCycle.begin(), bestResultAfterCycle.end(), true))
+                    {
+                        bestResultAfterCycle = localBestResult;
+
+                        bestId.first = true;
+                        bestId.second = storageIt->first;
+                    }
                 }
+
+                ++storageIt;
+                ++validPropIt;
             }
 
-            retVal.insert(bestId);
+            if(true == bestId.first)
+            {
+                retVal.insert(bestId.second);
+                bestResult = bestResultAfterCycle;
+            }
 
-            std::unordered_set<Props> diff;
-
-            std::set_difference(tmpPropertiesNeeded.begin(), tmpPropertiesNeeded.end(),
-                                bestIntersection.begin(), bestIntersection.end(),
-                                std::inserter(diff, diff.begin()));
-
-            tmpPropertiesNeeded = diff;
-        }*/
+            if(bestResult.size() == std::count(bestResult.begin(), bestResult.end(), true))// all variables in vector will be true
+            {
+                break;
+            }
+        }
 
         return retVal;
     }
