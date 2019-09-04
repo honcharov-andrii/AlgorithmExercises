@@ -156,98 +156,40 @@ namespace for_each_tuple_with_param
     }
 }
 
-namespace compare_two_tuples_for_each
+namespace compare_two_tuples
 {
-    template <typename... >
-    struct Typelist {};
-
-    template<size_t N,
-             int index,
-             typename TypeListOne,
-             typename TypeListTwo,
-             template <typename...> class FirstTuple,
-             template <typename...> class SecondTuple,
-             typename Callback>
-    struct iterate_tuple;
-
-    template<size_t N,
-             int index,
-             typename... FirstTupleArgs,
-             typename... SecondTupleArgs,
-             template <typename...> class FirstTuple,
-             template <typename...> class SecondTuple,
-             typename Callback>
-    struct iterate_tuple<N,
-            index,
-            Typelist <FirstTupleArgs...>,
-            Typelist <SecondTupleArgs...>,
-            FirstTuple,
-            SecondTuple,
-            Callback>
+    template<size_t N, int index, typename Callback, typename ...Args>
+    struct iterate_tuple
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
+        static void next(const std::tuple<Args...>& firstTuple, const std::tuple<Args...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
         {
-            iterate_tuple<N,
-                    index - 1,
-                    Typelist <FirstTupleArgs...>,
-                    Typelist <SecondTupleArgs...>,
-                    FirstTuple,
-                    SecondTuple, Callback>::next(firstTuple, secondTuple, validValues, matchingValues, callback);
+            iterate_tuple<N, index - 1, Callback, Args...>::next(firstTuple, secondTuple, validValues, matchingValues, callback);
 
             callback(index, std::get<index>(firstTuple), std::get<index>(secondTuple), validValues, matchingValues);
         }
     };
 
-    template<size_t N,
-             typename... FirstTupleArgs,
-             typename... SecondTupleArgs,
-             template <typename...> class FirstTuple,
-             template <typename...> class SecondTuple,
-             typename Callback>
-    struct iterate_tuple<N,
-            0,
-            Typelist <FirstTupleArgs...>,
-            Typelist <SecondTupleArgs...>,
-            FirstTuple,
-            SecondTuple,
-            Callback>
+    template<size_t N, typename Callback, typename ...Args>
+    struct iterate_tuple<N, 0, Callback, Args...>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
+        static void next(const std::tuple<Args...>& firstTuple, const std::tuple<Args...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
         {
             callback(0, std::get<0>(firstTuple), std::get<0>(secondTuple), validValues, matchingValues);
         }
     };
 
-    template<size_t N,
-             typename... FirstTupleArgs,
-             typename... SecondTupleArgs,
-             template <typename...> class FirstTuple,
-             template <typename...> class SecondTuple,
-             typename Callback>
-    struct iterate_tuple<N,
-            -1,
-            Typelist <FirstTupleArgs...>,
-            Typelist <SecondTupleArgs...>,
-            FirstTuple,
-            SecondTuple,
-            Callback>
+    template<size_t N, typename Callback, typename ...Args>
+    struct iterate_tuple<N, -1, Callback, Args...>
     {
-        static void next(const FirstTuple<FirstTupleArgs...>& firstTuple, const SecondTuple<SecondTupleArgs...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback){ }
+        static void next(const std::tuple<Args...>& firstTuple, const std::tuple<Args...>& secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback){ }
     };
 
-    template <size_t N,
-              typename... FirstTupleArgs, template <typename...> class FirstTuple,
-              typename... SecondTupleArgs, template <typename...> class SecondTuple,
-              typename Callback>
-    void for_each_for_compare_two_tuples(const FirstTuple<FirstTupleArgs...> & firstTuple, const SecondTuple<SecondTupleArgs...> & secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
+    template <size_t N, typename Callback, typename ...Args>
+    void for_each_for_compare_two_tuples(const std::tuple<Args...> & firstTuple, const std::tuple<Args...> & secondTuple, const std::array<bool, N> & validValues, std::array<bool, N> & matchingValues, Callback callback)
     {
-        int const t_size = std::tuple_size<std::tuple<FirstTupleArgs...>>::value;
+        int const t_size = std::tuple_size<std::tuple<Args...>>::value;
 
-        iterate_tuple<N, t_size - 1,
-                Typelist <FirstTupleArgs...>,
-                Typelist <SecondTupleArgs...>,
-                FirstTuple,
-                SecondTuple, Callback>::next(firstTuple, secondTuple, validValues, matchingValues, callback);
+        iterate_tuple<N, t_size - 1, Callback, Args...>::next(firstTuple, secondTuple, validValues, matchingValues, callback);
     }
 };
 
@@ -323,7 +265,7 @@ public:
 
     void eraseObject(const ID & id)
     {
-        mStorage.erase(id); // std::size_type ??????
+        mStorage.erase(id);
         mValidProperties.erase(id);
     }
 
@@ -349,19 +291,17 @@ public:
             auto storageIt = mStorage.begin();
             auto validPropIt = mValidProperties.begin();
 
-            while(storageIt != mStorage.end() && validPropIt != mValidProperties.end())// maybe we could use only one iterator,
-            {                                                                          // because sizes of containers are equal
+            while(storageIt != mStorage.end() && validPropIt != mValidProperties.end())
+            {
                 if(retVal.end() == retVal.find(storageIt->first))
                 {
                     std::array<bool, N> localBestResult = bestResult;
 
-                    compare_two_tuples_for_each::for_each_for_compare_two_tuples(storageIt->second,
-                                                                                 mPropertiesNeeded,
-                                                                                 validPropIt->second,
-                                                                                 localBestResult,
-                                                                                 CallbackForCompareValues());
+                    compare_two_tuples::for_each_for_compare_two_tuples(storageIt->second, mPropertiesNeeded, validPropIt->second, localBestResult,
+                                                                                                                                   CallbackForCompareValues());
 
-                    if(std::count(localBestResult.begin(), localBestResult.end(), true) > std::count(bestResultAfterCycle.begin(), bestResultAfterCycle.end(), true))
+                    if(std::count(localBestResult.begin(), localBestResult.end(), true) >
+                       std::count(bestResultAfterCycle.begin(), bestResultAfterCycle.end(), true))
                     {
                         bestResultAfterCycle = localBestResult;
 
